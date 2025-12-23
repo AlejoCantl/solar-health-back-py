@@ -1,48 +1,50 @@
 from fastapi import APIRouter
 import joblib
-import os
+import numpy as np
+from ml_app.models.schemas_peak_saving import PeakShavingInput
+from pathlib import Path
 
-router = APIRouter(
-    prefix="/ml/peak-shaving",
-    tags=["Machine Learning - Peak Shaving"]
-)
+MODEL_DIR = Path(__file__).parent.parent / "modelos"
 
-MODEL_PATH = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "modelos",
-    "peak_shaving_model.pkl"
-)
+peak_saving = APIRouter(prefix="/api", tags=["peak-shaving"])   
 
-model = joblib.load(MODEL_PATH)
-print("Features del modelo:", model.feature_names_in_)
+# =========================
+# Cargar modelo
+# =========================
+model = joblib.load(MODEL_DIR / "peak_shaving_model.pkl")
 
-
-
-class PeakShavingInput(BaseModel):
-    hour: int           # 0–23
-    dayofweek: int      # 0=lunes ... 6=domingo
-    solar_generation: float
-
-
-
-import pandas as pd
-
-@router.post("/predict")
+# =========================
+# Endpoint
+# =========================
+@peak_saving.post("/predict/peak-shaving")
 def predict_peak_shaving(data: PeakShavingInput):
 
-    X = pd.DataFrame([{
-        "hour": data.hour,
-        "dayofweek": data.dayofweek,
-        "SolarGeneration": data.solar_generation
-    }])
+    X = np.array([[
+        data.hour,
+        data.day_of_week,
+        data.ghi,
+        data.cloud_opacity
+    ]])
 
-    prediction = model.predict(X)[0]
+    try:
+        prediction = model.predict(X)[0]
+        # Check if the model supports probability prediction
+        if hasattr(model, "predict_proba"):
+            probability = model.predict_proba(X)[0][1]
+        else:
+            # Fallback if model is a Regressor or doesn't support proba
+            probability = 1.0 if prediction == 1 else 0.0
+    except Exception as e:
+        print(f"Error during prediction: {e}")
+        # Return a safe fallback or re-raise with better message
+        # For now, we return default values to avoid 500 in dev, 
+        # or we could raise HTTPException.
+        # Let's raise HTTPException for visibility in client
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Model prediction failed: {str(e)}")
 
     return {
-        "hour": data.hour,
-        "dayofweek": data.dayofweek,
-        "solar_generation": data.solar_generation,
-        "peak_shaving": bool(prediction)
+        "peak_shaving": bool(prediction),
+        "label": "High Consumption Peak" if prediction == 1 else "Normal Consumption",
+        "confidence": round(probability, 3)
     }
-

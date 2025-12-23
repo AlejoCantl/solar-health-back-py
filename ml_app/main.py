@@ -1,9 +1,7 @@
 """
-FastAPI - Machine Learning | Solar Health
-=========================================
-Microservicio de Machine Learning para:
-- Peak Shaving
-- Predicción de consumo y tarifas
+FastAPI - Predicción de Consumo Eléctrico y Facturación
+========================================================
+API para predecir consumo energético y calcular facturas
 """
 
 from fastapi import FastAPI
@@ -13,14 +11,10 @@ from ml_app.routes.peak_shaving import peak_saving
 import uvicorn
 import os
 
-# Routers ML
-from app.routes import peak_shaving
-from ml_app.routes.routers_tarifas import router_prediccion
-
 # Crear aplicación FastAPI
 app = FastAPI(
-    title="Solar Health - Machine Learning API",
-    description="Microservicio ML para análisis y predicción energética",
+    title="API Predicción Consumo Eléctrico",
+    description="Predice consumo energético y calcula facturas para campus universitario",
     version="1.0.0"
 )
 
@@ -41,25 +35,23 @@ app.include_router(peak_saving)
 @app.get("/")
 def root():
     return {
-        "service": "Solar Health ML API",
+        "nombre": "API Predicción Consumo Eléctrico",
         "version": "1.0.0",
-        "modules": [
-            "Peak Shaving",
-            "Predicción de consumo y facturación"
-        ],
-        "docs": "/docs"
+        "endpoints": {
+            "prediccion_puntual": "/api/predict",
+            "factura_mensual": "/api/predict/monthly",
+            "health": "/api/health",
+            "documentacion": "/docs"
+        }
     }
 
-# Health check
-@app.get("/health")
+# Endpoint de health check
+@app.get("/api/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "service": "solar-health-ml"
-    }
+    return {"status": "healthy", "service": "ml-prediccion"}
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8001))  # ML corre en puerto separado
+    port = int(os.getenv("PORT", 8001))  # Puerto diferente al principal (8000)
     uvicorn.run(
         "ml_app.main:app",
         host="0.0.0.0",
