@@ -1,42 +1,49 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 import joblib
-import numpy as np
+import os
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/ml/peak-shaving",
+    tags=["Machine Learning - Peak Shaving"]
+)
 
-# =========================
-# Cargar modelo
-# =========================
-model = joblib.load("modelos/peak_shaving_model.pkl")
+MODEL_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "modelos",
+    "peak_shaving_model.pkl"
+)
 
-# =========================
-# Esquema de entrada
-# =========================
+model = joblib.load(MODEL_PATH)
+print("Features del modelo:", model.feature_names_in_)
+
+
+
 class PeakShavingInput(BaseModel):
-    hour: int
-    day_of_week: int
-    ghi: float
-    cloud_opacity: float
+    hour: int           # 0–23
+    dayofweek: int      # 0=lunes ... 6=domingo
+    solar_generation: float
 
-# =========================
-# Endpoint
-# =========================
-@router.post("/predict/peak-shaving")
+
+
+import pandas as pd
+
+@router.post("/predict")
 def predict_peak_shaving(data: PeakShavingInput):
 
-    X = np.array([[
-        data.hour,
-        data.day_of_week,
-        data.ghi,
-        data.cloud_opacity
-    ]])
+    X = pd.DataFrame([{
+        "hour": data.hour,
+        "dayofweek": data.dayofweek,
+        "SolarGeneration": data.solar_generation
+    }])
 
     prediction = model.predict(X)[0]
-    probability = model.predict_proba(X)[0][1]
 
     return {
-        "peak_shaving": bool(prediction),
-        "label": "High Consumption Peak" if prediction == 1 else "Normal Consumption",
-        "confidence": round(probability, 3)
+        "hour": data.hour,
+        "dayofweek": data.dayofweek,
+        "solar_generation": data.solar_generation,
+        "peak_shaving": bool(prediction)
     }
+
