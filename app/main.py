@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes.routers import router_departamentos, router_ciudades, router_ips, router_registro
 from app.db_config.database import engine
 from app.models.models import Base
+from ml_app.routes.peak_shaving import router as peak_shaving_router
 import os
 
 # Crear las tablas (equivalente a JPA)
@@ -29,6 +30,7 @@ app.include_router(router_departamentos)
 app.include_router(router_ciudades)
 app.include_router(router_ips)
 app.include_router(router_registro)
+app.include_router(peak_shaving_router)
 
 # Endpoint raíz
 @app.get("/")

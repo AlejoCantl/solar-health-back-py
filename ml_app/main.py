@@ -1,23 +1,28 @@
 """
-FastAPI - Predicción de Consumo Eléctrico y Facturación
-========================================================
-API para predecir consumo energético y calcular facturas
+FastAPI - Machine Learning | Solar Health
+=========================================
+Microservicio de Machine Learning para:
+- Peak Shaving
+- Predicción de consumo y tarifas
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from ml_app.routes.tarifas import tarifas
-from ml_app.routes.peak_shaving import peak_saving
 import uvicorn
 import os
 
+# Routers ML
+from ml_app.routes.peak_shaving import router as peak_shaving
+from ml_app.routes.tarifas import tarifas
+
 # Crear aplicación FastAPI
 app = FastAPI(
-    title="API Predicción Consumo Eléctrico",
-    description="Predice consumo energético y calcula facturas para campus universitario",
+    title="Solar Health - Machine Learning API",
+    description="Microservicio ML para análisis y predicción energética",
     version="1.0.0"
 )
 
+app = FastAPI(title="Solar Health API")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
@@ -28,30 +33,39 @@ app.add_middleware(
 )
 
 # Incluir routers
-app.include_router(tarifas)
-app.include_router(peak_saving)
+app.include_router(
+    peak_shaving,
+    tags=["Machine Learning - Peak Shaving"]
+)
+
+app.include_router(
+    tarifas,
+    tags=["Machine Learning - Predicción Consumo"]
+)
 
 # Endpoint raíz
 @app.get("/")
 def root():
     return {
-        "nombre": "API Predicción Consumo Eléctrico",
+        "service": "Solar Health ML API",
         "version": "1.0.0",
-        "endpoints": {
-            "prediccion_puntual": "/api/predict",
-            "factura_mensual": "/api/predict/monthly",
-            "health": "/api/health",
-            "documentacion": "/docs"
-        }
+        "modules": [
+            "Peak Shaving",
+            "Predicción de consumo y facturación"
+        ],
+        "docs": "/docs"
     }
 
-# Endpoint de health check
-@app.get("/api/health")
+# Health check
+@app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "ml-prediccion"}
+    return {
+        "status": "healthy",
+        "service": "solar-health-ml"
+    }
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8001))  # Puerto diferente al principal (8000)
+    port = int(os.getenv("PORT", 8001))  # ML corre en puerto separado
     uvicorn.run(
         "ml_app.main:app",
         host="0.0.0.0",

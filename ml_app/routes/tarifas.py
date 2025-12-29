@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 # Router principal
-tarifas = APIRouter(prefix="/api", tags=["tarifas"])
+tarifas = APIRouter(prefix="/ml/tarifas")
 
 
 @tarifas.post("/predict/specific-point", response_model=PrediccionPuntualResponse)
